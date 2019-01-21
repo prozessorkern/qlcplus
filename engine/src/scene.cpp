@@ -611,7 +611,7 @@ void Scene::writeDMX(MasterTimer *timer, QList<Universe *> ua)
     }
     else
     {
-        dismissAllFaders(ua);
+        dismissAllFaders();
         timer->unregisterDMXSource(this);
     }
 }
@@ -660,7 +660,10 @@ void Scene::write(MasterTimer *timer, QList<Universe*> ua)
 
             FadeChannel *fc = fader->getChannelFader(doc(), ua[universe], scv.fxi, scv.channel);
 
-            if (blendMode() != Universe::NormalBlend)
+            // when blend mode is not normal (e.g. additive) perform a full
+            // from-0 fade only on intensity channels and let LTP channels
+            // fade from the current universe value to their target
+            if (blendMode() != Universe::NormalBlend && (fc->type() & FadeChannel::Intensity))
                 fc->setCurrent(0);
 
             qDebug() << "Scene" << name() << "add channel" << scv.channel << "from" << fc->current() << "to" << scv.value;
@@ -690,20 +693,6 @@ void Scene::write(MasterTimer *timer, QList<Universe*> ua)
         }
     }
 
-    // check if all channels reached their target
-    // e.g. this happens when all channels are LTP
-    bool needToStop = true;
-    foreach (GenericFader *f, m_fadersMap.values())
-    {
-        if (f->channelsCount())
-        {
-            needToStop = false;
-            break;
-        }
-    }
-    if (needToStop)
-        stop(FunctionParent::master());
-
     if (isPaused() == false)
     {
         incrementElapsed();
@@ -721,7 +710,7 @@ void Scene::postRun(MasterTimer* timer, QList<Universe *> ua)
      * when done */
     if (fadeout == 0)
     {
-        dismissAllFaders(ua);
+        dismissAllFaders();
     }
     else
     {

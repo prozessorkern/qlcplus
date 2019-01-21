@@ -152,6 +152,7 @@ void GenericFader::write(Universe *universe)
         int channelType = fc.type();
         int address = int(fc.addressInUniverse());
         uchar value;
+        Universe::BlendMode blendMode = m_blendMode;
 
         // Calculate the next step
         if (m_paused)
@@ -159,9 +160,26 @@ void GenericFader::write(Universe *universe)
         else
             value = fc.nextStep(MasterTimer::tick());
 
-        // Apply intensity to HTP channels
-        if ((channelType & FadeChannel::Intensity) && fc.canFade())
-            value = fc.current(intensity());
+        // Apply intensity to channels that can fade
+        if (fc.canFade())
+        {
+            if (channelType & FadeChannel::Intensity)
+            {
+                value = fc.current(intensity());
+            }
+            else if (blendMode != Universe::NormalBlend &&
+                     fc.fadeTime() == 0 && (channelType & FadeChannel::LTP))
+            {
+                // this translates into: LTP + crossfade.
+                // Value is proportional between start and target, depending on intensity
+                value = uchar((qreal(fc.target() - fc.start()) * intensity()) + fc.start());
+            }
+        }
+
+        // LTP non intensity channels must use normal blending, otherwise they
+        // will be added up in case of additive blending
+        if ((channelType & FadeChannel::LTP) && (channelType & FadeChannel::Intensity) == 0)
+            blendMode = Universe::NormalBlend;
 
         //qDebug() << "[GenericFader] >>> uni:" << universe->id() << ", address:" << address << ", value:" << value;
         if (channelType & FadeChannel::Override)
@@ -169,21 +187,24 @@ void GenericFader::write(Universe *universe)
         else if (channelType & FadeChannel::Relative)
             universe->writeRelative(address, value);
         else
-            universe->writeBlended(address, value, m_blendMode);
+            universe->writeBlended(address, value, blendMode);
 
-        if ((channelType & FadeChannel::Intensity) &&
+        if (((channelType & FadeChannel::Intensity) &&
             (channelType & FadeChannel::HTP) &&
-            m_blendMode == Universe::NormalBlend)
+            blendMode == Universe::NormalBlend) || m_fadeOut)
         {
-            // Remove all HTP channels that reach their target _zero_ value.
+            // Remove all channels that reach their target _zero_ value.
             // They have no effect either way so removing them saves a bit of CPU.
-            if (fc.current() == 0 && fc.target() == 0)
+            if (fc.current() == 0 && fc.target() == 0 && fc.isReady())
             {
                 it.remove();
                 continue;
             }
         }
     }
+
+    if (m_fadeOut && channelsCount() == 0)
+        requestDelete();
 }
 
 qreal GenericFader::intensity() const
@@ -231,24 +252,15 @@ void GenericFader::setFadeOut(bool enable, uint fadeTime)
         while (it.hasNext() == true)
         {
             FadeChannel& fc(it.next().value());
-            int channelType = fc.type();
 
-            if ((channelType & FadeChannel::Intensity) == 0)
+            if ((fc.type() & FadeChannel::Intensity) == 0)
                 continue;
 
             fc.setStart(fc.current());
+            fc.setTarget(0);
             fc.setElapsed(0);
             fc.setReady(false);
-
-            if (fc.canFade() == false)
-            {
-                fc.setFadeTime(0);
-            }
-            else
-            {
-                fc.setFadeTime(fadeTime);
-                fc.setTarget(0);
-            }
+            fc.setFadeTime(fc.canFade() ? fadeTime : 0);
         }
     }
 }
