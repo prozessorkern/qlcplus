@@ -25,8 +25,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>579</width>
-    <height>291</height>
+    <width>259</width>
+    <height>96</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -34,83 +34,14 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_3">
    <item>
-    <widget class="QTabWidget" name="tabWidget">
-     <property name="currentIndex">
-      <number>0</number>
+    <widget class="QLabel" name="lblIpAddr">
+     <property name="text">
+      <string>IP Address</string>
      </property>
-     <widget class="QWidget" name="tab">
-      <attribute name="title">
-       <string>Universes Configuration</string>
-      </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_4">
-       <item>
-        <widget class="QLabel" name="label">
-         <property name="text">
-          <string>Configuration of the patched universes</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QTreeWidget" name="m_uniMapTree">
-         <column>
-          <property name="text">
-           <string>Interface</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Universe</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>IP Address</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>ArtNet Universe</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Transmission Mode</string>
-          </property>
-         </column>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-     <widget class="QWidget" name="tab_2">
-      <attribute name="title">
-       <string>Nodes Tree</string>
-      </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_2">
-       <item>
-        <widget class="QTreeWidget" name="m_nodesTree">
-         <property name="alternatingRowColors">
-          <bool>true</bool>
-         </property>
-         <column>
-          <property name="text">
-           <string>IP</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Short Name</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Long Name</string>
-          </property>
-         </column>
-        </widget>
-       </item>
-      </layout>
-     </widget>
     </widget>
+   </item>
+   <item>
+    <widget class="QLineEdit" name="m_tbxIpAddr"/>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="m_buttonBox">

@@ -94,6 +94,15 @@ public:
     /** */
     bool writeOutput(const QByteArray &data);
 
+    /** */
+    bool writeFeedback(quint32 channel, uchar value);
+
+    /** */
+    void setIpAddr(uint32_t ipAddr);
+
+    /** */
+    uint32_t getIpAddr();
+
 private:
     /** */
     void writeConsole();
@@ -120,6 +129,7 @@ private:
     xtouchData_t m_xtouchOutData;
     uint32_t m_universe;
     uint32_t m_input;
+    uint32_t m_ipAddr;
 
 signals:
     void valueChanged(quint32 universe, quint32 input, quint32 channel, uchar value);

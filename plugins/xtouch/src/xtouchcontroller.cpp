@@ -25,6 +25,8 @@
 #include <QDebug>
 #include <stddef.h>
 
+#define DEFAULT_IP_ADDR 0xC0A8027F
+
 
 /****************************************************************************
  * Initialization
@@ -37,6 +39,7 @@ XtouchController::XtouchController(quint32 input, quint32 universe, QObject* par
     , m_udpSocket(NULL)
     , m_universe(universe)
     , m_input(input)
+    , m_ipAddr(DEFAULT_IP_ADDR)
 {
 
     m_xtouchData.bank = 0u;
@@ -85,6 +88,7 @@ bool XtouchController::close()
     {
         m_handshakeTimer->stop();
         free(m_handshakeTimer);
+        m_handshakeTimer = nullptr;
     }
     return true;
 }
@@ -103,22 +107,42 @@ bool XtouchController::isConnected()
 
 bool XtouchController::writeOutput(const QByteArray &data)
 {
-    if(data.size() >= int(sizeof(m_xtouchOutData)))
+    Q_UNUSED(data);
+    return true;
+}
+
+bool XtouchController::writeFeedback(quint32 channel, uchar value)
+{
+    uint8_t *data = (uint8_t*)&m_xtouchOutData;
+    if(channel < sizeof(m_xtouchData))
     {
-        memcpy(&m_xtouchOutData, data.data(), sizeof(m_xtouchOutData));
+        data[channel] = value;
 
         m_xtouchData.wheel = m_xtouchOutData.wheel;
 
-        for(uint8_t i; i < BANK_COUNT; i ++)
+        for(uint8_t i = 0; i < BANK_COUNT; i ++)
         {
-            for(uint8_t j; j < CHANNEL_COUNT; j ++)
+            for(uint8_t j = 0; j < CHANNEL_COUNT; j ++)
             {
                 m_xtouchData.banks[i].channelStrip[j].knob = m_xtouchOutData.banks[i].channelStrip[j].knob;
+                m_xtouchData.banks[i].channelStrip[j].fader = m_xtouchOutData.banks[i].channelStrip[j].fader;
             }
         }
     }
 
+    writeConsole();
+
     return true;
+}
+
+void XtouchController::setIpAddr(uint32_t ipAddr)
+{
+    m_ipAddr = ipAddr;
+}
+
+uint32_t XtouchController::getIpAddr()
+{
+    return m_ipAddr;
 }
 
 void XtouchController::handshakeTimer()
@@ -126,7 +150,7 @@ void XtouchController::handshakeTimer()
     QByteArray packet;
     packet.clear();
     packet.append(xTouchHandshakePcToXtouch, sizeof(xTouchHandshakePcToXtouch));
-    m_udpSocket->writeDatagram(packet, QHostAddress("192.168.34.102"), 10111u);
+    m_udpSocket->writeDatagram(packet, QHostAddress(m_ipAddr), 10111u);
 
     if(m_connectedCounter > 0u)
     {
@@ -186,7 +210,19 @@ void XtouchController::writeConsole()
     setBankSelectors(&packet, m_xtouchData.bank);
     setButtons(&packet, m_xtouchData.bank);
 
-    m_udpSocket->writeDatagram(packet, QHostAddress("192.168.34.102"), 10111u);
+    m_udpSocket->writeDatagram(packet, QHostAddress(m_ipAddr), 10111u);
+
+    packet.clear();
+    for(uint32_t i = 0u; i < sizeof(m_xtouchData.buttons); i ++)
+    {
+        if(xTouchButtonMap[i] != 0u)
+        {
+            packet.append(0x90);
+            packet.append(xTouchButtonMap[i]);
+            packet.append(m_xtouchOutData.buttons[i]);
+        }
+    }
+    m_udpSocket->writeDatagram(packet, QHostAddress(m_ipAddr), 10111u);
 }
 
 void XtouchController::setBank(QByteArray *packet, uint8_t bank)
@@ -240,17 +276,8 @@ void XtouchController::setKnob(QByteArray *packet, uint8_t channel, uint8_t valu
 
 void XtouchController::setButtons(QByteArray *packet, uint8_t bank)
 {
-    for(uint32_t i; i < sizeof(m_xtouchOutData.buttons); i ++)
-    {
-        if(xTouchButtonMap[i] != 0u)
-        {
-            packet->append(0x90);
-            packet->append(xTouchButtonMap[i]);
-            packet->append(m_xtouchOutData.buttons[i]);
-        }
-    }
 
-    for(uint32_t i; i < CHANNEL_COUNT; i ++)
+    for(uint32_t i = 0u; i < CHANNEL_COUNT; i ++)
     {
         packet->append(0x90);
         packet->append(0x00 + i);
@@ -308,6 +335,7 @@ void XtouchController::readFader(QByteArray &packet, uint8_t bank)
         uint8_t tempChannel = quint8(packet[0]) - 0xe0u;
 
         m_xtouchData.banks[bank].channelStrip[tempChannel].fader = value;
+        m_xtouchOutData.banks[bank].channelStrip[tempChannel].fader = value;
         channel = offsetof(xtouchData_t, banks)
                         + (sizeof(xtouchBank_t) * bank)
                         + (sizeof(xtouchChannelStrip_t) * tempChannel)
@@ -317,6 +345,7 @@ void XtouchController::readFader(QByteArray &packet, uint8_t bank)
     else if(quint8(packet[0]) == 0xe8)
     {
         m_xtouchData.masterFader = value;
+        m_xtouchOutData.masterFader = value;
         channel = offsetof(xtouchData_t, masterFader);
         freshValue = true;
     }
@@ -438,6 +467,7 @@ void XtouchController::readEncoder(QByteArray &packet, uint8_t bank)
                 m_xtouchData.banks[bank].channelStrip[tempChannel].knob -= decrement;
             }
         }
+        m_xtouchOutData.banks[bank].channelStrip[tempChannel].knob = m_xtouchData.banks[bank].channelStrip[tempChannel].knob;
         channel = offsetof(xtouchData_t, banks)
                 + (sizeof(xtouchBank_t) * bank)
                 + (sizeof(xtouchChannelStrip_t) * tempChannel)
@@ -448,15 +478,30 @@ void XtouchController::readEncoder(QByteArray &packet, uint8_t bank)
     }
     else if(uint8_t(packet[1]) == 0x3c)
     {
-        uint8_t value = uint8_t(packet[2]) - 0x40;
-        if(m_xtouchData.wheel < value)
-        {
-            m_xtouchData.wheel = 0u;
-        }
-        else
-        {
-            m_xtouchData.wheel -= value;
-        }
+    	if(uint8_t(packet[2]) < 0x40)
+		{
+			uint8_t increment = uint8_t(packet[2]);
+			if((255 - m_xtouchData.wheel) < increment)
+			{
+				m_xtouchData.wheel = 255u;
+			}
+			else
+			{
+				m_xtouchData.wheel += increment;
+			}
+		}
+    	else
+    	{
+    		uint8_t decrement = uint8_t(packet[2]) - 0x40;
+			if(m_xtouchData.wheel < decrement)
+			{
+				m_xtouchData.wheel = 0u;
+			}
+			else
+			{
+				m_xtouchData.wheel -= decrement;
+			}
+    	}
         channel = offsetof(xtouchData_t, wheel);
         value = m_xtouchData.wheel;
         freshValue = true;

@@ -255,6 +255,15 @@ QString XtouchPlugin::inputInfo(quint32 input)
     return str;
 }
 
+void XtouchPlugin::sendFeedBack(quint32 universe, quint32 inputLine,
+                               quint32 channel, uchar value, const QString &key)
+{
+    Q_UNUSED(universe)
+    Q_UNUSED(key)
+    m_IOmapping[inputLine].controller->writeFeedback(channel, value);
+}
+
+
 /*********************************************************************
  * Configuration
  *********************************************************************/
@@ -285,6 +294,19 @@ QList<XtouchIO> XtouchPlugin::getIOMapping()
 {
     return m_IOmapping;
 }
+
+void XtouchPlugin::setIpAddr(uint32_t ipAddr)
+{
+    /* just for the start - this should configure each controller seperately */
+    foreach(XtouchIO io, m_IOmapping)
+    {
+        if(nullptr != io.controller)
+        {
+            io.controller->setIpAddr((ipAddr));
+        }
+    }
+}
+
 
 /*****************************************************************************
  * Plugin export

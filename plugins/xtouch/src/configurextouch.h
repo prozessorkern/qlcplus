@@ -42,8 +42,6 @@ public slots:
     int exec();
 
 private:
-    void fillNodesTree();
-    void fillMappingTree();
     void showIPAlert(QString ip);
 
 private:

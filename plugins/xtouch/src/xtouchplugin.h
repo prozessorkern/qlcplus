@@ -114,6 +114,10 @@ public:
     /** @reimp */
     QString inputInfo(quint32 input);
 
+    /** @reimp */
+    void sendFeedBack(quint32 universe, quint32 inputLine,
+                      quint32 channel, uchar value, const QString &key);
+
     /*********************************************************************
      * Configuration
      *********************************************************************/
@@ -129,6 +133,9 @@ public:
 
     /** Get a list of the available Input/Output lines */
     QList<XtouchIO> getIOMapping();
+
+    /** */
+    void setIpAddr(uint32_t ipAddr);
 
 private:
     /** Map of the ArtNet plugin Input/Output lines */
