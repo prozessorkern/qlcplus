@@ -549,7 +549,7 @@ void VCSlider::addLevelChannel(quint32 fixture, quint32 channel)
     if (m_levelChannels.contains(lch) == false)
     {
         m_levelChannels.append(lch);
-        qSort(m_levelChannels.begin(), m_levelChannels.end());
+        std::sort(m_levelChannels.begin(), m_levelChannels.end());
     }
 }
 
@@ -618,7 +618,9 @@ void VCSlider::setChannelsMonitorEnabled(bool enable)
         setSliderShadowValue(m_monitorValue);
     }
     else
+    {
         setSliderShadowValue(-1);
+    }
 }
 
 bool VCSlider::channelsMonitorEnabled() const
@@ -1063,9 +1065,9 @@ void VCSlider::writeDMXLevel(MasterTimer *timer, QList<Universe *> universes)
             f = SCALE(float(m_levelValue), float(m_slider->minimum()),
                       float(m_slider->maximum()), float(0), float(200));
 
-        if ((uchar)f != 0)
+        if (uchar(f) != 0)
         {
-            QColor modColor = m_cngRGBvalue.lighter((uchar)f);
+            QColor modColor = m_cngRGBvalue.lighter(uchar(f));
             r = modColor.red();
             g = modColor.green();
             b = modColor.blue();
@@ -1077,9 +1079,9 @@ void VCSlider::writeDMXLevel(MasterTimer *timer, QList<Universe *> universes)
         if (m_slider)
             f = SCALE(float(m_levelValue), float(m_slider->minimum()),
                       float(m_slider->maximum()), float(0), float(200));
-        if ((uchar)f != 0)
+        if (uchar(f) != 0)
         {
-            QColor modColor = m_cngRGBvalue.lighter((uchar)f);
+            QColor modColor = m_cngRGBvalue.lighter(uchar(f));
             c = modColor.cyan();
             m = modColor.magenta();
             y = modColor.yellow();
@@ -1121,38 +1123,40 @@ void VCSlider::writeDMXLevel(MasterTimer *timer, QList<Universe *> universes)
             }
 
             int chType = fc->type();
+            const QLCChannel *qlcch = fxi->channel(lch.channel);
 
             // set override flag if needed
             if (m_isOverriding)
                 fc->setTypeFlag(FadeChannel::Override);
+            // request to autoremove LTP channels when set
+            if (qlcch->group() != QLCChannel::Intensity)
+                fc->setTypeFlag(FadeChannel::Autoremove);
 
             if (chType & FadeChannel::Intensity)
             {
                 if (m_cngType == ClickAndGoWidget::RGB)
                 {
-                    const QLCChannel *qlcch = fxi->channel(lch.channel);
                     if (qlcch != NULL)
                     {
                         if (qlcch->colour() == QLCChannel::Red)
-                            modLevel = (uchar)r;
+                            modLevel = uchar(r);
                         else if (qlcch->colour() == QLCChannel::Green)
-                            modLevel = (uchar)g;
+                            modLevel = uchar(g);
                         else if (qlcch->colour() == QLCChannel::Blue)
-                            modLevel = (uchar)b;
+                            modLevel = uchar(b);
                     }
                 }
                 else if (m_cngType == ClickAndGoWidget::CMY)
                 {
-                    const QLCChannel *qlcch = fxi->channel(lch.channel);
                     if (qlcch == NULL)
                         continue;
 
                     if (qlcch->colour() == QLCChannel::Cyan)
-                        modLevel = (uchar)c;
+                        modLevel = uchar(c);
                     else if (qlcch->colour() == QLCChannel::Magenta)
-                        modLevel = (uchar)m;
+                        modLevel = uchar(m);
                     else if (qlcch->colour() == QLCChannel::Yellow)
-                        modLevel = (uchar)y;
+                        modLevel = uchar(y);
                 }
             }
 
@@ -1255,13 +1259,13 @@ void VCSlider::setSliderValue(uchar value, bool scale, bool external)
     /* Scale from input value range to this slider's range */
     if (scale)
     {
-        val = SCALE((float) value, (float) 0, (float) UCHAR_MAX,
-                (float) m_slider->minimum(),
-                (float) m_slider->maximum());
+        val = SCALE(float(value), float(0), float(UCHAR_MAX),
+                float(m_slider->minimum()),
+                float(m_slider->maximum()));
     }
 
     if (m_slider->invertedAppearance() == true)
-        val = (uchar)m_slider->maximum() - val + (uchar)m_slider->minimum();
+        val = uchar(m_slider->maximum()) - val + uchar(m_slider->minimum());
 
     /* Request the UI to update */
     if (m_slider->isSliderDown() == false && val != m_slider->value())
@@ -1292,9 +1296,6 @@ void VCSlider::setSliderValue(uchar value, bool scale, bool external)
             setLevelValue(val);
             emitSubmasterValue();
         }
-        break;
-
-        default:
         break;
     }
 }

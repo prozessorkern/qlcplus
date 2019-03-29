@@ -305,7 +305,7 @@ void SimpleDeskEngine::writeDMX(MasterTimer *timer, QList<Universe *> ua)
                 if (universe >= (quint32)ua.count())
                     continue;
 
-                ua[universe]->reset();
+                ua[universe]->reset(0, 512);
 
                 GenericFader *fader = m_fadersMap.value(universe, NULL);
                 if (fader != NULL)
@@ -368,7 +368,7 @@ void SimpleDeskEngine::writeDMX(MasterTimer *timer, QList<Universe *> ua)
         {
             it.next();
             int uni = it.key() >> 9;
-            int address = it.key() & 0x01FF;
+            int address = it.key();
             uchar value = it.value();
             FadeChannel *fc = getFader(ua, uni, Fixture::invalidId(), address);
             fc->setCurrent(value);

@@ -183,11 +183,18 @@ void GenericFader::write(Universe *universe)
 
         //qDebug() << "[GenericFader] >>> uni:" << universe->id() << ", address:" << address << ", value:" << value;
         if (channelType & FadeChannel::Override)
+        {
             universe->write(address, value, true);
+            continue;
+        }
         else if (channelType & FadeChannel::Relative)
+        {
             universe->writeRelative(address, value);
+        }
         else
+        {
             universe->writeBlended(address, value, blendMode);
+        }
 
         if (((channelType & FadeChannel::Intensity) &&
             (channelType & FadeChannel::HTP) &&
@@ -196,11 +203,11 @@ void GenericFader::write(Universe *universe)
             // Remove all channels that reach their target _zero_ value.
             // They have no effect either way so removing them saves a bit of CPU.
             if (fc.current() == 0 && fc.target() == 0 && fc.isReady())
-            {
                 it.remove();
-                continue;
-            }
         }
+
+        if (channelType & FadeChannel::Autoremove)
+            it.remove();
     }
 
     if (m_fadeOut && channelsCount() == 0)
