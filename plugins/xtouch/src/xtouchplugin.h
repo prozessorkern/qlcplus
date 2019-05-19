@@ -27,18 +27,8 @@
 #include <QHash>
 #include <QFile>
 
-#if defined(ANDROID)
-#include <QNetworkInterface>
-#include <QHostAddress>
-#include <QUdpSocket>
-#include <QScopedPointer>
-#include <QSharedPointer>
-#else
-#include <QtNetwork>
-#endif
-
-#include "xtouchcontroller.h"
 #include "qlcioplugin.h"
+#include "xtouchcontroller.h"
 
 typedef struct
 {
