@@ -26,6 +26,7 @@
 
 GenericFader::GenericFader(QObject *parent)
     : QObject(parent)
+    , m_fid(Function::invalidId())
     , m_priority(Universe::Auto)
     , m_intensity(1.0)
     , m_paused(false)
@@ -49,6 +50,16 @@ QString GenericFader::name() const
 void GenericFader::setName(QString name)
 {
     m_name = name;
+}
+
+quint32 GenericFader::parentFunctionID() const
+{
+    return m_fid;
+}
+
+void GenericFader::setParentFunctionID(quint32 fid)
+{
+    m_fid = fid;
 }
 
 int GenericFader::priority() const
@@ -105,7 +116,7 @@ void GenericFader::removeAll()
     m_channels.clear();
 }
 
-bool GenericFader::deleteRequest()
+bool GenericFader::deleteRequested()
 {
     return m_deleteRequest;
 }
@@ -149,7 +160,7 @@ void GenericFader::write(Universe *universe)
     while (it.hasNext() == true)
     {
         FadeChannel& fc(it.next().value());
-        int channelType = fc.type();
+        int flags = fc.flags();
         int address = int(fc.addressInUniverse());
         uchar value;
         Universe::BlendMode blendMode = m_blendMode;
@@ -163,12 +174,12 @@ void GenericFader::write(Universe *universe)
         // Apply intensity to channels that can fade
         if (fc.canFade())
         {
-            if (channelType & FadeChannel::Intensity)
+            if (flags & FadeChannel::Intensity)
             {
                 value = fc.current(intensity());
             }
             else if (blendMode != Universe::NormalBlend &&
-                     fc.fadeTime() == 0 && (channelType & FadeChannel::LTP))
+                     fc.fadeTime() == 0 && (flags & FadeChannel::LTP))
             {
                 // this translates into: LTP + crossfade.
                 // Value is proportional between start and target, depending on intensity
@@ -178,16 +189,16 @@ void GenericFader::write(Universe *universe)
 
         // LTP non intensity channels must use normal blending, otherwise they
         // will be added up in case of additive blending
-        if ((channelType & FadeChannel::LTP) && (channelType & FadeChannel::Intensity) == 0)
+        if ((flags & FadeChannel::LTP) && (flags & FadeChannel::Intensity) == 0)
             blendMode = Universe::NormalBlend;
 
         //qDebug() << "[GenericFader] >>> uni:" << universe->id() << ", address:" << address << ", value:" << value;
-        if (channelType & FadeChannel::Override)
+        if (flags & FadeChannel::Override)
         {
             universe->write(address, value, true);
             continue;
         }
-        else if (channelType & FadeChannel::Relative)
+        else if (flags & FadeChannel::Relative)
         {
             universe->writeRelative(address, value);
         }
@@ -196,8 +207,8 @@ void GenericFader::write(Universe *universe)
             universe->writeBlended(address, value, blendMode);
         }
 
-        if (((channelType & FadeChannel::Intensity) &&
-            (channelType & FadeChannel::HTP) &&
+        if (((flags & FadeChannel::Intensity) &&
+            (flags & FadeChannel::HTP) &&
             blendMode == Universe::NormalBlend) || m_fadeOut)
         {
             // Remove all channels that reach their target _zero_ value.
@@ -206,7 +217,7 @@ void GenericFader::write(Universe *universe)
                 it.remove();
         }
 
-        if (channelType & FadeChannel::Autoremove)
+        if (flags & FadeChannel::Autoremove)
             it.remove();
     }
 
@@ -260,7 +271,7 @@ void GenericFader::setFadeOut(bool enable, uint fadeTime)
         {
             FadeChannel& fc(it.next().value());
 
-            if ((fc.type() & FadeChannel::Intensity) == 0)
+            if ((fc.flags() & FadeChannel::Intensity) == 0)
                 continue;
 
             fc.setStart(fc.current());

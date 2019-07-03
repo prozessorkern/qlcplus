@@ -548,6 +548,24 @@ void WebAccess::slotHandleWebSocketRequest(QHttpConnection *conn, QString data)
             else
                 wsAPIMessage.append(Function::typeToString(Function::Undefined));
         }
+        else if (apiCmd == "setFunctionStatus") 
+	{
+            if (cmdList.count() < 4)
+                return;
+
+            quint32 fID = cmdList[2].toUInt();
+            quint32 newStatus = cmdList[3].toUInt();
+            Function *f = m_doc->function(fID);
+
+            if (f != NULL)
+            {
+                if (!f->isRunning() && newStatus)
+                    f->start(m_doc->masterTimer(), FunctionParent::master());
+                else if (f->isRunning() && !newStatus)
+                    f->stop(FunctionParent::master());
+            }
+            return;
+        }
         else if (apiCmd == "getWidgetsNumber")
         {
             VCFrame *mainFrame = m_vc->contents();
@@ -708,7 +726,7 @@ void WebAccess::slotHandleWebSocketRequest(QHttpConnection *conn, QString data)
             case VCWidget::SliderWidget:
             {
                 VCSlider *slider = qobject_cast<VCSlider*>(widget);
-                slider->setSliderValue(value);
+                slider->setSliderValue(value, false, true);
                 slider->updateFeedback();
             }
             break;
@@ -1298,9 +1316,12 @@ QString WebAccess::getChildrenHTML(VCWidget *frame, int pagesNum, int currentPag
         }
         if (lframe->multipageMode() == true && pagesNum > 0)
         {
-            pagesHTML[widget->page()] += str;
-            if (restoreDisable)
-                widget->setEnabled(false);
+            if (widget->page() < pagesHTML.count())
+            {
+                pagesHTML[widget->page()] += str;
+                if (restoreDisable)
+                    widget->setEnabled(false);
+            }
         }
         else
             unifiedHTML += str;

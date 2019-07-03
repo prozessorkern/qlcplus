@@ -594,8 +594,8 @@ void Scene::writeDMX(MasterTimer *timer, QList<Universe *> ua)
                 if (universe == Universe::invalid())
                     continue;
 
-                GenericFader *fader = m_fadersMap.value(universe, NULL);
-                if (fader == NULL)
+                QSharedPointer<GenericFader> fader = m_fadersMap.value(universe, QSharedPointer<GenericFader>());
+                if (fader.isNull())
                 {
                     fader = ua[universe]->requestFader();
                     fader->adjustIntensity(getAttributeValue(Intensity));
@@ -604,7 +604,7 @@ void Scene::writeDMX(MasterTimer *timer, QList<Universe *> ua)
                 }
 
                 fc.setTarget(sv.value);
-                fc.setTypeFlag(FadeChannel::Flashing);
+                fc.addFlag(FadeChannel::Flashing);
                 fader->add(fc);
             }
         }
@@ -648,13 +648,14 @@ void Scene::write(MasterTimer *timer, QList<Universe*> ua)
             if (universe == Universe::invalid())
                 continue;
 
-            GenericFader *fader = m_fadersMap.value(universe, NULL);
-            if (fader == NULL)
+            QSharedPointer<GenericFader> fader = m_fadersMap.value(universe, QSharedPointer<GenericFader>());
+            if (fader.isNull())
             {
                 fader = ua[universe]->requestFader();
                 fader->adjustIntensity(getAttributeValue(Intensity));
                 fader->setBlendMode(blendMode());
                 fader->setName(name());
+                fader->setParentFunctionID(id());
                 m_fadersMap[universe] = fader;
             }
 
@@ -663,7 +664,7 @@ void Scene::write(MasterTimer *timer, QList<Universe*> ua)
             // when blend mode is not normal (e.g. additive) perform a full
             // from-0 fade only on intensity channels and let LTP channels
             // fade from the current universe value to their target
-            if (blendMode() != Universe::NormalBlend && (fc->type() & FadeChannel::Intensity))
+            if (blendMode() != Universe::NormalBlend && (fc->flags() & FadeChannel::Intensity))
                 fc->setCurrent(0);
 
             qDebug() << "Scene" << name() << "add channel" << scv.channel << "from" << fc->current() << "to" << scv.value;
@@ -717,8 +718,11 @@ void Scene::postRun(MasterTimer* timer, QList<Universe *> ua)
         if (tempoType() == Beats)
             fadeout = beatsToTime(fadeout, timer->beatTimeDuration());
 
-        foreach (GenericFader *fader, m_fadersMap.values())
-            fader->setFadeOut(true, fadeout);
+        foreach (QSharedPointer<GenericFader> fader, m_fadersMap.values())
+        {
+            if (!fader.isNull())
+                fader->setFadeOut(true, fadeout);
+        }
     }
 
     m_fadersMap.clear();
@@ -736,8 +740,11 @@ int Scene::adjustAttribute(qreal fraction, int attributeId)
 
     if (attrIndex == Intensity)
     {
-        foreach (GenericFader *fader, m_fadersMap.values())
-            fader->adjustIntensity(getAttributeValue(Function::Intensity));
+        foreach (QSharedPointer<GenericFader> fader, m_fadersMap.values())
+        {
+            if (!fader.isNull())
+                fader->adjustIntensity(getAttributeValue(Function::Intensity));
+        }
     }
 
     return attrIndex;
@@ -754,8 +761,11 @@ void Scene::setBlendMode(Universe::BlendMode mode)
 
     qDebug() << "Scene" << name() << "blend mode set to" << Universe::blendModeToString(mode);
 
-    foreach (GenericFader *fader, m_fadersMap.values())
-        fader->setBlendMode(mode);
+    foreach (QSharedPointer<GenericFader> fader, m_fadersMap.values())
+    {
+        if (!fader.isNull())
+            fader->setBlendMode(mode);
+    }
 
     Function::setBlendMode(mode);
 }

@@ -3,10 +3,18 @@ qlcplus (4.12.2) stable; urgency=low
   * Simple Desk: fix faders not overriding value = 0
   * Simple Desk: fix universe reset erasing channel modifiers
   * Virtual Console/Slider: fix LTP channels being written continuously
+  * Virtual Console/Slider: fix inverted behavior
+  * UI: fix Stop all Functions fading out all intensity channels
+  * Web Access: fix crash caused by VC widgets on deleted frame pages
+  * Web Access: fix VC Sliders in level mode not changing DMX values
+  * Web Access: added "setFunctionStatus" API (thanks to Gabriele C.)
   * Fixture Editor: fix 'Nothing' type not handled correctly
+  * Plugins/DMX USB: default DMXIS to Pro Tx/Rx
+  * Plugins/DMX USB: add new OpenRX mode (thanks to Emmanuel C.)
+  * NEW OS2L plugin (see documentation)
   * New fixture: Martin MAC Encore Performance (thanks to Flo Edelmann)
 
- -- Massimo Callegari <massimocallegari@yahoo.it>  Sun, 26 May 2019 12:13:14 +0200
+ -- Massimo Callegari <massimocallegari@yahoo.it>  Sun, 23 Jun 2019 12:13:14 +0200
 
 qlcplus (4.12.1) stable; urgency=low
 

@@ -220,8 +220,11 @@ VCSlider::~VCSlider()
     m_doc->masterTimer()->unregisterDMXSource(this);
 
     // request to delete all the active faders
-    foreach (GenericFader *fader, m_fadersMap.values())
-        fader->requestDelete();
+    foreach (QSharedPointer<GenericFader> fader, m_fadersMap.values())
+    {
+        if (!fader.isNull())
+            fader->requestDelete();
+    }
     m_fadersMap.clear();
 }
 
@@ -356,8 +359,11 @@ void VCSlider::slotModeChanged(Doc::Mode mode)
         {
             m_doc->masterTimer()->unregisterDMXSource(this);
             // request to delete all the active faders
-            foreach (GenericFader *fader, m_fadersMap.values())
-                fader->requestDelete();
+            foreach (QSharedPointer<GenericFader> fader, m_fadersMap.values())
+            {
+                if (!fader.isNull())
+                    fader->requestDelete();
+            }
             m_fadersMap.clear();
         }
     }
@@ -661,8 +667,6 @@ void VCSlider::slotMonitorDMXValueChanged(int value)
 
     m_monitorValue = value;
 
-    value = invertedAppearance() ? 255 - value : value;
-
     if (m_isOverriding == false)
     {
         {
@@ -863,8 +867,11 @@ void VCSlider::slotResetButtonClicked()
                                  .arg(m_slider->palette().background().color().name()));
 
     // request to delete all the active fader channels
-    foreach (GenericFader *fader, m_fadersMap.values())
-        fader->removeAll();
+    foreach (QSharedPointer<GenericFader> fader, m_fadersMap.values())
+    {
+        if (!fader.isNull())
+            fader->removeAll();
+    }
 
     emit monitorDMXValueChanged(m_monitorValue);
 }
@@ -1100,8 +1107,8 @@ void VCSlider::writeDMXLevel(MasterTimer *timer, QList<Universe *> universes)
 
             quint32 universe = fxi->universe();
 
-            GenericFader *fader = m_fadersMap.value(universe, NULL);
-            if (fader == NULL)
+            QSharedPointer<GenericFader> fader = m_fadersMap.value(universe, QSharedPointer<GenericFader>());
+            if (fader.isNull())
             {
                 fader = universes[universe]->requestFader(m_monitorEnabled ? Universe::Override : Universe::Auto);
                 fader->adjustIntensity(intensity());
@@ -1110,7 +1117,7 @@ void VCSlider::writeDMXLevel(MasterTimer *timer, QList<Universe *> universes)
                 {
                     qDebug() << "VC slider monitor enabled";
                     fader->setMonitoring(true);
-                    connect(fader, SIGNAL(preWriteData(quint32,QByteArray)),
+                    connect(fader.data(), SIGNAL(preWriteData(quint32,QByteArray)),
                             this, SLOT(slotUniverseWritten(quint32,QByteArray)));
                 }
             }
@@ -1122,15 +1129,15 @@ void VCSlider::writeDMXLevel(MasterTimer *timer, QList<Universe *> universes)
                 continue;
             }
 
-            int chType = fc->type();
+            int chType = fc->flags();
             const QLCChannel *qlcch = fxi->channel(lch.channel);
 
             // set override flag if needed
             if (m_isOverriding)
-                fc->setTypeFlag(FadeChannel::Override);
+                fc->addFlag(FadeChannel::Override);
             // request to autoremove LTP channels when set
             if (qlcch->group() != QLCChannel::Intensity)
-                fc->setTypeFlag(FadeChannel::Autoremove);
+                fc->addFlag(FadeChannel::Autoremove);
 
             if (chType & FadeChannel::Intensity)
             {
@@ -1264,9 +1271,6 @@ void VCSlider::setSliderValue(uchar value, bool scale, bool external)
                 float(m_slider->maximum()));
     }
 
-    if (m_slider->invertedAppearance() == true)
-        val = uchar(m_slider->maximum()) - val + uchar(m_slider->minimum());
-
     /* Request the UI to update */
     if (m_slider->isSliderDown() == false && val != m_slider->value())
        emit requestSliderUpdate(val);
@@ -1305,19 +1309,14 @@ void VCSlider::setSliderShadowValue(int value)
     if (m_widgetMode == WSlider)
     {
         ClickAndGoSlider *sl = qobject_cast<ClickAndGoSlider*> (m_slider);
-        sl->setShadowLevel(m_slider->invertedAppearance() ? 255 - value : value);
+        sl->setShadowLevel(value);
     }
 }
 
 int VCSlider::sliderValue() const
 {
     if (m_slider)
-    {
-        if (invertedAppearance())
-            return 255 - m_slider->value();
-        else
-            return m_slider->value();
-    }
+        return m_slider->value();
 
     return 0;
 }
@@ -1415,11 +1414,11 @@ void VCSlider::updateFeedback()
     if (m_slider)
     {
         if (invertedAppearance() == true)
-            fbv = m_slider->maximum() - m_slider->value();
+            fbv = m_slider->maximum() - m_slider->value() + m_slider->minimum();
         else
             fbv = m_slider->value();
-        fbv = (int)SCALE(float(fbv), float(m_slider->minimum()),
-                         float(m_slider->maximum()), float(0), float(UCHAR_MAX));
+        fbv = int(SCALE(float(fbv), float(m_slider->minimum()),
+                        float(m_slider->maximum()), float(0), float(UCHAR_MAX)));
     }
     sendFeedback(fbv);
 }
@@ -1490,6 +1489,9 @@ void VCSlider::slotInputValueChanged(quint32 universe, quint32 channel, uchar va
                 m_isOverriding = true;
             }
 
+            if (invertedAppearance())
+                value = UCHAR_MAX - value;
+
             setSliderValue(value, true, true);
             m_lastInputValue = value;
         }
@@ -1516,8 +1518,11 @@ void VCSlider::adjustIntensity(qreal val)
     }
     else if (sliderMode() == Level)
     {
-        foreach (GenericFader *fader, m_fadersMap.values())
-            fader->adjustIntensity(val);
+        foreach (QSharedPointer<GenericFader> fader, m_fadersMap.values())
+        {
+            if (!fader.isNull())
+                fader->adjustIntensity(val);
+        }
     }
 }
 
