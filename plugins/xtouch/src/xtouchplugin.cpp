@@ -207,6 +207,13 @@ bool XtouchPlugin::openInput(quint32 input, quint32 universe)
     }
 
     m_IOmapping[input].controller->open();
+    
+    QSettings settings;
+    QVariant value = settings.value("XTouchPlugin/ipAddress");
+    if (value.isValid() == true)
+    {
+        m_IOmapping[input].controller->setIpAddr(value.toUInt());
+    }
 
     return true;
 }
