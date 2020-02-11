@@ -61,6 +61,12 @@ class Scene : public Function, public DMXSource
      * Initialization
      *********************************************************************/
 public:
+    enum SceneAttr
+    {
+        Intensity = Function::Intensity,
+        ParentIntensity
+    };
+
     /**
      * Construct a new scene function, with given parent object. If the
      * parent is not a Doc* object, the debug build asserts.
@@ -76,8 +82,6 @@ public:
 
     /** @reimp */
     QIcon getIcon() const;
-
-    void setChildrenFlag(bool flag);
 
     /** @reimp */
     quint32 totalDuration();
@@ -199,6 +203,28 @@ private:
     QList<quint32> m_fixtures;
 
     /*********************************************************************
+     * Fixture Groups
+     *********************************************************************/
+public:
+    void addFixtureGroup(quint32 id);
+    bool removeFixtureGroup(quint32 id);
+    QList<quint32> fixtureGroups() const;
+
+private:
+    QList<quint32> m_fixtureGroups;
+
+    /*********************************************************************
+     * Palettes
+     *********************************************************************/
+public:
+    void addPalette(quint32 id);
+    bool removePalette(quint32 id);
+    QList<quint32> palettes() const;
+
+private:
+    QList<quint32> m_palettes;
+
+    /*********************************************************************
      * Load & Save
      *********************************************************************/
 public:
@@ -237,6 +263,10 @@ public:
     /** @reimp */
     void postRun(MasterTimer *timer, QList<Universe*> ua);
 
+private:
+    /** Internal helper method to abtract Scene value processing */
+    void processValue(MasterTimer *timer, QList<Universe*> ua, uint fadeIn, SceneValue &scv);
+
     /*********************************************************************
      * Attributes
      *********************************************************************/
@@ -245,11 +275,21 @@ public:
     int adjustAttribute(qreal fraction, int attributeId);
 
     /*************************************************************************
-     * Blend mode
+     * Blending
      *************************************************************************/
 public:
     /** @reimp */
     void setBlendMode(Universe::BlendMode mode);
+
+    /** Get/Set the ID of a Function to blend from.
+     *  When preparing the faders of this Scene,
+     *  blend function ID will be taken into account
+     *  to blend channels from a value to another */
+    quint32 blendFunctionID() const;
+    void setBlendFunctionID(quint32 fid);
+
+protected:
+    quint32 m_blendFunctionID;
 };
 
 /** @} */

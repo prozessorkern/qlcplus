@@ -28,7 +28,7 @@ Rectangle
     width: UISettings.bigItemHeight * 3
     height: UISettings.bigItemHeight * 3
     color: UISettings.bgMedium
-    border.color: "#666"
+    border.color: UISettings.bgLight
     border.width: 2
     clip: true
 
@@ -47,6 +47,12 @@ Rectangle
             prList.model = null // force reload
             prList.model = presetModel
         }
+    }
+
+    MouseArea
+    {
+        anchors.fill: parent
+        onWheel: { return false }
     }
 
     // toolbar area containing the available preset channels
@@ -78,7 +84,7 @@ Rectangle
                     height: presetToolBar.height
                     color: prMouseArea.pressed ? UISettings.bgLight : UISettings.bgMedium
                     border.width: 1
-                    border.color: "#666"
+                    border.color: UISettings.bgLight
 
                     property int fxID: modelData.fixtureID
                     property int chIdx: modelData.channelIdx
@@ -90,6 +96,7 @@ Rectangle
                             selectedFixture = fxID
                             selectedChannel = chIdx
                             capRepeater.model = fixtureManager.presetCapabilities(selectedFixture, selectedChannel)
+                            prFlickable.contentY = 0
                         }
                     }
 
@@ -113,6 +120,7 @@ Rectangle
                             selectedFixture = delegateRoot.fxID
                             selectedChannel = delegateRoot.chIdx
                             capRepeater.model = fixtureManager.presetCapabilities(selectedFixture, selectedChannel)
+                            prFlickable.contentY = 0
                         }
                     }
             }
@@ -122,6 +130,7 @@ Rectangle
     // flickable layout containing the actual preset capabilities
     Flickable
     {
+        id: prFlickable
         width: parent.width
         height: parent.height - presetToolBar.height
         y: presetToolBar.height

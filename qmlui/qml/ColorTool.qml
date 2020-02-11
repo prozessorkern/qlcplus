@@ -20,15 +20,17 @@
 import QtQuick 2.3
 import QtQuick.Controls 2.1
 import QtQuick.Layouts 1.1
+
+import org.qlcplus.classes 1.0
 import "."
 
 Rectangle
 {
     id: colorToolBox
     width: UISettings.bigItemHeight * 3
-    height: UISettings.bigItemHeight * 3.5
+    height: UISettings.bigItemHeight * 4
     color: UISettings.bgMedium
-    border.color: "#666"
+    border.color: UISettings.bgLight
     border.width: 2
 
     property bool closeOnSelect: false
@@ -36,8 +38,15 @@ Rectangle
     property color currentRGB
     property color currentWAUV
     property string colorToolQML: "qrc:/ColorToolBasic.qml"
+    property alias showPalette: paletteBox.visible
 
     signal colorChanged(real r, real g, real b, real w, real a, real uv)
+
+    MouseArea
+    {
+        anchors.fill: parent
+        onWheel: { return false }
+    }
 
     Rectangle
     {
@@ -122,7 +131,7 @@ Rectangle
         //objectName: "editorLoader"
         anchors.top: colorToolBar.bottom
         width: colorToolBox.width
-        height: parent.height - colorToolBar.height
+        height: colorToolBox.height - colorToolBar.height - (paletteBox.visible ? paletteBox.height + 4 : 0)
         source: colorToolQML
 
         onLoaded:
@@ -130,22 +139,43 @@ Rectangle
             item.width = width
             item.colorsMask = Qt.binding(function() { return colorToolBox.colorsMask })
             if (item.hasOwnProperty("currentRGB"))
-                item.currentRGB = colorToolBox.currentRGB
+                item.currentRGB = Qt.binding(function() { return colorToolBox.currentRGB })
             if (item.hasOwnProperty("currentWAUV"))
-                item.currentWAUV = colorToolBox.currentWAUV
+                item.currentWAUV = Qt.binding(function() { return colorToolBox.currentWAUV })
         }
 
         Connections
         {
-             target: toolLoader.item
-             ignoreUnknownSignals: true
-             onColorChanged:
-             {
-                 currentRGB = Qt.rgba(r, g, b, 1.0)
-                 currentWAUV = Qt.rgba(w, a, uv, 1.0)
-                 colorToolBox.colorChanged(r, g, b, w, a, uv)
-             }
-             onReleased: if (closeOnSelect) colorToolBox.visible = false
+            target: toolLoader.item
+            ignoreUnknownSignals: true
+            onColorChanged:
+            {
+                if (paletteBox.checked && paletteBox.isPicking)
+                {
+                    var rgb = Qt.rgba(r, g, b, 1.0)
+                    paletteBox.setColor(rgb)
+                }
+                else
+                {
+                    currentRGB = Qt.rgba(r, g, b, 1.0)
+                    currentWAUV = Qt.rgba(w, a, uv, 1.0)
+                    colorToolBox.colorChanged(r, g, b, w, a, uv)
+                }
+
+                if (paletteBox.checked)
+                    paletteBox.updatePreview()
+            }
+            onReleased: if (closeOnSelect) colorToolBox.visible = false
         }
+    }
+
+    PaletteFanningBox
+    {
+        id: paletteBox
+        x: 5
+        y: colorToolBox.height - height - 2
+        width: colorToolBox.width - 10
+        paletteType: QLCPalette.Color
+        value1: colorToolBox.currentRGB
     }
 }

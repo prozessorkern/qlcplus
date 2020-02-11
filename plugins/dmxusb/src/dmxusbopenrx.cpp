@@ -45,7 +45,7 @@ DMXUSBOpenRx::DMXUSBOpenRx(DMXInterface *interface,
     , m_granularity(Unknown)
     , m_reader_state(Calibrating)
 {
-    qDebug() << "Open RX contructor, line" << inputLine;
+    qDebug() << "Open RX constructor, line" << inputLine;
 
     m_inputBaseLine = inputLine;
     setOutputsNumber(0);
@@ -60,7 +60,7 @@ DMXUSBOpenRx::DMXUSBOpenRx(DMXInterface *interface,
     if (interface->type() == DMXInterface::QtSerial)
         forceInterfaceDriver(DMXInterface::libFTDI);
 #endif
-    qDebug() << "Open RX contructor end";
+    qDebug() << "Open RX constructor end";
 }
 
 DMXUSBOpenRx::~DMXUSBOpenRx()
@@ -226,7 +226,7 @@ void DMXUSBOpenRx::run()
 {
     // Wait for device to settle in case the device was opened just recently
     // Also measure, whether timer granularity is OK
-    QTime time;
+    QElapsedTimer time;
     time.start();
     usleep(1000);
     if (time.elapsed() > 3)

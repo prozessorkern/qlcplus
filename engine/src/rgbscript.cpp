@@ -70,6 +70,23 @@ RGBScript::~RGBScript()
 {
 }
 
+RGBScript &RGBScript::operator=(const RGBScript &s)
+{
+    if (this != &s)
+    {
+        m_fileName = s.m_fileName;
+        m_contents = s.m_contents;
+        m_apiVersion = s.m_apiVersion;
+        evaluate();
+        foreach(RGBScriptProperty cap, s.m_properties)
+        {
+            setProperty(cap.m_name, s.property(cap.m_name));
+        }
+    }
+
+    return *this;
+}
+
 bool RGBScript::operator==(const RGBScript& s) const
 {
     if (this->fileName().isEmpty() == false && this->fileName() == s.fileName())
@@ -207,14 +224,12 @@ int RGBScript::rgbMapStepCount(const QSize& size)
     return ret;
 }
 
-RGBMap RGBScript::rgbMap(const QSize& size, uint rgb, int step)
+void RGBScript::rgbMap(const QSize& size, uint rgb, int step, RGBMap &map)
 {
-    RGBMap map;
-
     QMutexLocker engineLocker(s_engineMutex);
 
     if (m_rgbMap.isValid() == false)
-        return map;
+        return;
 
     QScriptValueList args;
     args << size.width() << size.height() << rgb << step;
@@ -222,7 +237,7 @@ RGBMap RGBScript::rgbMap(const QSize& size, uint rgb, int step)
     if (yarray.isArray() == true)
     {
         int ylen = yarray.property("length").toInteger();
-        map = RGBMap(ylen);
+        map.resize(ylen);
         for (int y = 0; y < ylen && y < size.height(); y++)
         {
             QScriptValue xarray = yarray.property(QString::number(y));
@@ -239,8 +254,6 @@ RGBMap RGBScript::rgbMap(const QSize& size, uint rgb, int step)
     {
         qWarning() << "Returned value is not an array within an array!";
     }
-
-    return map;
 }
 
 QString RGBScript::name() const

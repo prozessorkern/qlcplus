@@ -864,7 +864,7 @@ void VCSlider::slotResetButtonClicked()
 {
     m_isOverriding = false;
     m_resetButton->setStyleSheet(QString("QToolButton{ background: %1; }")
-                                 .arg(m_slider->palette().background().color().name()));
+                                 .arg(m_slider->palette().window().color().name()));
 
     // request to delete all the active fader channels
     foreach (QSharedPointer<GenericFader> fader, m_fadersMap.values())
@@ -1231,7 +1231,7 @@ void VCSlider::setTopLabelText(int value)
 
     if (valueDisplayStyle() == ExactValue)
     {
-        text.sprintf("%.3d", value);
+        text.asprintf("%.3d", value);
     }
     else
     {
@@ -1240,7 +1240,7 @@ void VCSlider::setTopLabelText(int value)
         if (m_slider)
             f = SCALE(float(value), float(m_slider->minimum()),
                       float(m_slider->maximum()), float(0), float(100));
-        text.sprintf("%.3d%%", static_cast<int> (f));
+        text.asprintf("%.3d%%", static_cast<int> (f));
     }
     m_topLabel->setText(text);
 

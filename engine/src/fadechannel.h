@@ -51,7 +51,8 @@ public:
         Flashing    = (1 << 4),     /** Is flashing */
         Relative    = (1 << 5),     /** Relative position */
         Override    = (1 << 6),     /** Override the current universe value */
-        Autoremove  = (1 << 7)      /** Automatically remove the channel once value is written */
+        Autoremove  = (1 << 7),     /** Automatically remove the channel once value is written */
+        CrossFade   = (1 << 8)      /** Channel subject to crossfade */
     };
 
     /** Create a new FadeChannel with empty/invalid values */
@@ -65,6 +66,8 @@ public:
 
     /** Destructor */
     virtual ~FadeChannel();
+
+    FadeChannel& operator=(const FadeChannel& fc);
 
     /** Comparison operator (true if fixture & channel match) */
     bool operator==(const FadeChannel& fc) const;
@@ -96,7 +99,7 @@ public:
     quint32 fixture() const;
 
     /** Get the universe of the Fixture that is being controlled. */
-    quint32 universe();
+    quint32 universe() const;
 
     /** Set channel within the Fixture. */
     void setChannel(const Doc* doc, quint32 num);
