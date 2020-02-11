@@ -59,6 +59,13 @@ ConfigureXtouch::ConfigureXtouch(XtouchPlugin* plugin, QWidget* parent)
 
     /* Setup UI controls */
     setupUi(this);
+
+    QSettings settings;
+    QVariant value = settings.value("XTouchPlugin/ipAddress");
+    if (value.isValid() == true)
+    {
+        m_tbxIpAddr->setText(QHostAddress(value.toUInt()).toString());
+    }
 }
 
 void ConfigureXtouch::showIPAlert(QString ip)
@@ -85,4 +92,10 @@ void ConfigureXtouch::accept()
 int ConfigureXtouch::exec()
 {
     return QDialog::exec();
+}
+
+quint32 ConfigureXtouch::ipAddress()
+{
+    uint32_t ipAddr = QHostAddress(m_tbxIpAddr->text()).toIPv4Address();
+    return ipAddr;
 }

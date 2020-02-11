@@ -38,6 +38,8 @@ public:
     /** @reimp */
     void accept();
 
+    quint32 ipAddress();
+
 public slots:
     int exec();
 

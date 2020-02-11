@@ -270,12 +270,17 @@ void XtouchPlugin::sendFeedBack(quint32 universe, quint32 inputLine,
 void XtouchPlugin::configure()
 {
     ConfigureXtouch conf(this);
-    conf.exec();
+    if (conf.exec() == QDialog::Accepted)
+    {
+        QSettings settings;
+        settings.setValue("XTouchPlugin/ipAddress", QVariant(conf.ipAddress()));
+        setIpAddr(conf.ipAddress());
+    }
 }
 
 bool XtouchPlugin::canConfigure()
 {
-    return false;
+    return true;
 }
 
 void XtouchPlugin::setParameter(quint32 universe, quint32 line, Capability type,
@@ -285,6 +290,7 @@ void XtouchPlugin::setParameter(quint32 universe, quint32 line, Capability type,
     (void)type;
     (void)name;
     (void)value;
+
     if (line >= (quint32)m_IOmapping.length())
         return;
 
